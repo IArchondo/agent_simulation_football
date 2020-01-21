@@ -59,6 +59,8 @@ class FootballModel(Model):
         self.schedule.agents[self.id_dict[chosen_player]].has_ball = True
         logger.info("Ball given to player " + str(chosen_player))
 
+        self.plot_grid()
+
     def __train_distance_model(self):
         """Calculates the maximum distance in the pitch and trains a linear model
             to determine passing accuracy-distance ratio
@@ -151,5 +153,5 @@ class FootballModel(Model):
         plt.show()
 
     def step(self):
-        self.schedule.step()
+        self.who_has_ball()["player"].step()
         self.plot_grid()

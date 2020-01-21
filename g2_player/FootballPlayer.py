@@ -23,13 +23,13 @@ class FootballPlayer(Agent):
         if self.team == "B":
             self.movement_direction = -1
 
-    def __is_not_on_border(self):
+    def __is_on_border(self):
         if ((self.team == "A") & (self.pos[1] + 1 == self.model.grid.height)) | (
             (self.team == "B") & (self.pos[1] == 0)
         ):
-            return False
-        else:
             return True
+        else:
+            return False
 
     def __count_surrounding_opposing_players(self, player):
         """Count the opposing player's in a player's vicinity
@@ -118,11 +118,25 @@ class FootballPlayer(Agent):
             for player in teammates
         }
 
+        # TODO closeness to goal should be also taken into account
         general_probability = {
             player: passing_probabilities[player]
             * (1 - interception_probabilities[player])
             for player in teammates
         }
+
+        ## Decide chosen pass candidate
+        max_prob = general_probability[
+            max(general_probability, key=general_probability.get)
+        ]
+
+        decision_candidates = [
+            player.unique_id
+            for player in general_probability.keys()
+            if general_probability[player] == max_prob
+        ]
+
+        decision = random.choice(decision_candidates)
 
         output_dict = {
             player.unique_id: {
@@ -132,6 +146,9 @@ class FootballPlayer(Agent):
             }
             for player in teammates
         }
+
+        ## attach chosen pass candidate
+        output_dict["decision"] = decision
 
         return output_dict
 
@@ -174,8 +191,11 @@ class FootballPlayer(Agent):
                 logger.info("Teammate is in front")
                 return False
 
+        elif self.__is_on_border():
+            logger.info("Player has reached the edge of the pitch")
+            return False
+
         else:
-            logger.info("No one is in front")
             return True
 
     def intent_pass_ball_to_player(self, receiving_player_id, success_probability):
@@ -228,7 +248,6 @@ class FootballPlayer(Agent):
         winning_player = passing_options[
             [i for i, x in enumerate(outcome) if x == 1][0]
         ]
-        self.__give_ball_to_player(winning_player)
 
         if outcome[0] == 0:
             logger.info("Ball lost")
@@ -237,13 +256,27 @@ class FootballPlayer(Agent):
             logger.info("Successful pass")
             logger.info("Received by " + str(winning_player))
 
+        self.__give_ball_to_player(winning_player)
+
+    def look_to_pass_ball(self):
+        """Evaluate passing candidates, choose one and intend a pass
+        """
+        passing_prob = self.calculate_passing_probabilities()
+
+        chosen_candidate = passing_prob["decision"]
+        probabilities = passing_prob[chosen_candidate]["general"]
+
+        self.intent_pass_ball_to_player(chosen_candidate, probabilities)
+
     def step(self):
         # TODO move all stepping forward into stepping forward
         logger.info(
             "Agent " + str(self.unique_id) + " activated on cell: " + str(self.pos)
         )
-        if self.__is_not_on_border():
-            if self.check_forward():
-                self.move_forward()
+
+        if self.check_forward():
+            self.move_forward()
+
         else:
-            logger.info("Agent has reached edge of pitch")
+            self.look_to_pass_ball()
+
