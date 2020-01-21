@@ -2,6 +2,7 @@ import logging
 import math
 
 from mesa import Agent
+from g1_utils.utils import cap_value, calculate_distance_two_points, apply_linear_model
 
 logger = logging.getLogger("FootballPlayer")
 
@@ -28,27 +29,80 @@ class FootballPlayer(Agent):
         else:
             return True
 
-    def __calculate_distance_two_points(self, point_1, point_2):
-        """Calculates distance between two given points
+    def __count_surrounding_opposing_players(self, player):
+        """Count the opposing player's in a player's vicinity
         
         Args:
-            point_1 (tuple): Tuple with coordinates for point 1
-            point_2 (tuple): Tuple with coordinates for point 2
+            player (g2_player.FootballPlayer.FootballPlayer): input player
         
         Returns:
-            float: Distance as a float
+            int: Number of opposing players in vicinity (min 0 - max 8)
         """
-        # TODO maybe move to utils?
-        x1 = point_1[0]
-        y1 = point_1[1]
-        x2 = point_2[0]
-        y2 = point_2[1]
 
-        dist = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-        return dist
+        neighbors = self.model.grid.get_neighbors(
+            pos=player.pos, moore=True, include_center=False, radius=1
+        )
 
-    def __calculate_passing_probabilities(self):
-        return
+        opposing_players = sum([neighbor.team != player.team for neighbor in neighbors])
+
+        logger.debug(
+            "Player "
+            + str(player.unique_id)
+            + " has "
+            + str(opposing_players)
+            + " opposing players in his surroundings"
+        )
+        return opposing_players
+
+    def calculate_passing_probabilities(self):
+        """Calculate probability of a succesful pass for each teammate
+        
+        Returns:
+            dict: Dict with passing, interception and general probabilities
+        """
+        # determine distance to each teammate
+        teammates = [
+            player
+            for player in self.model.schedule.agents
+            if (player.team == self.team) and (player.unique_id != self.unique_id)
+        ]
+
+        passing_distances = {
+            player: calculate_distance_two_points(self.pos, player.pos)
+            for player in teammates
+        }
+
+        passing_probabilities = {
+            player: apply_linear_model(
+                passing_distances[player], self.model.distance_model
+            )
+            for player in teammates
+        }
+
+        # TODO 0.25 should be possible to alter via a yaml file
+        interception_probabilities = {
+            player: cap_value(
+                0.25 * self.__count_surrounding_opposing_players(player), 1
+            )
+            for player in teammates
+        }
+
+        general_probability = {
+            player: passing_probabilities[player]
+            * (1 - interception_probabilities[player])
+            for player in teammates
+        }
+
+        output_dict = {
+            player.unique_id: {
+                "passing": passing_probabilities[player],
+                "interception": interception_probabilities[player],
+                "general": general_probability[player],
+            }
+            for player in teammates
+        }
+
+        return output_dict
 
     def move_forward(self):
         """Move forward one position

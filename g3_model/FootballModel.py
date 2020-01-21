@@ -5,6 +5,7 @@ from mesa.time import RandomActivation
 from mesa.space import SingleGrid
 from mesa.datacollection import DataCollector
 
+from g1_utils.utils import calculate_distance_two_points, train_linear_two_points
 from g2_player.FootballPlayer import FootballPlayer
 
 import logging
@@ -18,7 +19,10 @@ logger = logging.getLogger("FootballModel")
 class FootballModel(Model):
     def __init__(self, players_per_team, width, height, goals_to_win):
         self.players_per_team = players_per_team
+
         self.grid = SingleGrid(width, height, False)
+        self.distance_model = self.__train_distance_model()
+
         # TODO: change so it only activates player with ball
         self.schedule = RandomActivation(self)
 
@@ -54,6 +58,22 @@ class FootballModel(Model):
         logger.info("Team " + str(kickoff_team) + " wins the coin toss")
         self.schedule.agents[self.id_dict[chosen_player]].has_ball = True
         logger.info("Ball given to player " + str(chosen_player))
+
+    def __train_distance_model(self):
+        """Calculates the maximum distance in the pitch and trains a linear model
+            to determine passing accuracy-distance ratio
+
+        Returns:
+            dict: dict with slope and intercept
+        """
+
+        max_distance = calculate_distance_two_points(
+            (0, 0), (self.grid.width, self.grid.height)
+        )
+
+        output_dict = train_linear_two_points((1, 0.9), (max_distance, 0.1))
+
+        return output_dict
 
     def __determine_furthest_back_per_team(self):
         """Determine player that is furthest back for each team
@@ -96,7 +116,11 @@ class FootballModel(Model):
                 for key in self.id_dict.keys()
                 if self.id_dict[key] == index_has_ball[0]
             ]
-            return {"index": index_has_ball[0], "id": id_has_ball[0]}
+            return {
+                "index": index_has_ball[0],
+                "id": id_has_ball[0],
+                "player": self.schedule.agents[index_has_ball[0]],
+            }
 
         elif len(index_has_ball) == 0:
             logger.error("No one has ball")
