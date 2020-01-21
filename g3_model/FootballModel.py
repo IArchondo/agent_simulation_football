@@ -5,7 +5,11 @@ from mesa.time import RandomActivation
 from mesa.space import SingleGrid
 from mesa.datacollection import DataCollector
 
-from g1_utils.utils import calculate_distance_two_points, train_linear_two_points
+from g1_utils.utils import (
+    calculate_distance_two_points,
+    train_linear_two_points,
+    apply_linear_model,
+)
 from g2_player.FootballPlayer import FootballPlayer
 
 import logging
@@ -109,6 +113,49 @@ class FootballModel(Model):
         goal_width = (self.grid.width - 1) / 2
 
         return {"A": (goal_width, -0.5), "B": (goal_width, self.grid.height - 0.5)}
+
+    def determine_scoring_probabilities(self):
+        """Determine scoring probabilities from every point on the pitch
+        
+        Returns:
+            dict: dict with scoring probabilities for each position
+        """
+
+        dist_A = {
+            (x, y): calculate_distance_two_points(self.goal_coordinates["A"], (x, y))
+            for a, x, y in self.grid.coord_iter()
+        }
+
+        dist_B = {
+            (x, y): calculate_distance_two_points(self.goal_coordinates["B"], (x, y))
+            for a, x, y in self.grid.coord_iter()
+        }
+
+        # train probabilities model
+        min_dist = dist_A[min(dist_A, key=dist_A.get)]
+        max_dist = dist_A[max(dist_A, key=dist_A.get)]
+
+        point_min = (min_dist, 0.7)
+        point_max = (max_dist, 0.01)
+
+        dist_model = train_linear_two_points(point_min, point_max)
+
+        prob_A = {
+            pos: apply_linear_model(dist_A[pos], dist_model) for pos in dist_A.keys()
+        }
+
+        prob_B = {
+            pos: apply_linear_model(dist_B[pos], dist_model) for pos in dist_B.keys()
+        }
+
+        output_dict = {
+            "dist_A": dist_A,
+            "dist_B": dist_B,
+            "prob_A": prob_A,
+            "prob_B": prob_B,
+        }
+
+        return output_dict
 
     def who_has_ball(self):
         """Determine which player has the ball
