@@ -1,5 +1,7 @@
 import logging
 import math
+import random
+import numpy as np
 
 from mesa import Agent
 from g1_utils.utils import cap_value, calculate_distance_two_points, apply_linear_model
@@ -53,6 +55,35 @@ class FootballPlayer(Agent):
             + " opposing players in his surroundings"
         )
         return opposing_players
+
+    def __give_ball_to_player(self, receiving_player_id):
+        """give ball to a given player
+        
+        Args:
+            receiving_player_id (str): Id of the receiving player
+        
+        Raises:
+            Exception: checks if player has the ball
+        """
+        if self.has_ball:
+            # stop having ball
+            self.has_ball = False
+            # make receiving player have ball
+            receiving_player_index = self.model.id_dict[receiving_player_id]
+            receiving_player_pos = self.model.schedule.agents[
+                receiving_player_index
+            ].pos
+            self.model.schedule.agents[receiving_player_index].has_ball = True
+
+            logger.info(
+                "Passed ball to player "
+                + str(receiving_player_id)
+                + " in position "
+                + str(receiving_player_pos)
+            )
+        else:
+            logger.error("Player does not have ball, so he can't pass it")
+            raise Exception("Player does not have ball")
 
     def calculate_passing_probabilities(self):
         """Calculate probability of a succesful pass for each teammate
@@ -117,27 +148,6 @@ class FootballPlayer(Agent):
         self.model.grid.move_agent(self, new_position)
         logger.info("Player moved forward to cell " + str(new_position))
 
-    def pass_ball_to_player(self, receiving_player_id):
-        if self.has_ball:
-            # stop having ball
-            self.has_ball = False
-            # make receiving player have ball
-            receiving_player_index = self.model.id_dict[receiving_player_id]
-            receiving_player_pos = self.model.schedule.agents[
-                receiving_player_index
-            ].pos
-            self.model.schedule.agents[receiving_player_index].has_ball = True
-
-            logger.info(
-                "Passed ball to player "
-                + str(receiving_player_id)
-                + " in position "
-                + str(receiving_player_pos)
-            )
-        else:
-            logger.error("Player does not have ball, so he can't pass it")
-            raise Exception("Player does not have ball")
-
     def check_forward(self):
         """Check if an opposing player is in front of player
         
@@ -167,6 +177,62 @@ class FootballPlayer(Agent):
         else:
             logger.info("No one is in front")
             return True
+
+    def intent_pass_ball_to_player(self, receiving_player_id, success_probability):
+        """ Try a pass to a given player, if missed, nearest opposing player receives ball
+        
+        Args:
+            receiving_player_id (str): Intended receiving player
+            success_probability (float): probabilities of pass to succeed 
+        """
+
+        # calculate distance of receiving player with all opponents
+        receiving_player = self.model.schedule.agents[
+            self.model.id_dict[receiving_player_id]
+        ]
+
+        opposition = [
+            player
+            for player in self.model.schedule.agents
+            if (player.team != self.team)
+        ]
+
+        distances = {
+            player.unique_id: calculate_distance_two_points(
+                receiving_player.pos, player.pos
+            )
+            for player in opposition
+        }
+
+        closest_opp = distances[min(distances, key=distances.get)]
+
+        closest_players = [
+            player.unique_id
+            for player in opposition
+            if distances[player.unique_id] == closest_opp
+        ]
+
+        pressing_player = random.choice(closest_players)
+
+        passing_options = [receiving_player_id, pressing_player]
+
+        passing_probs = [success_probability, 1 - success_probability]
+
+        rng = np.random.default_rng()
+
+        outcome = rng.multinomial(1, passing_probs, 1).tolist()[0]
+
+        winning_player = passing_options[
+            [i for i, x in enumerate(outcome) if x == 1][0]
+        ]
+        self.__give_ball_to_player(winning_player)
+
+        if outcome[0] == 0:
+            logger.info("Ball lost")
+            logger.info("Stolen by " + str(winning_player))
+        if outcome[0] == 1:
+            logger.info("Successful pass")
+            logger.info("Received by " + str(winning_player))
 
     def step(self):
         # TODO move all stepping forward into stepping forward
