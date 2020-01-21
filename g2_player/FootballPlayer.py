@@ -1,4 +1,5 @@
 import logging
+import math
 
 from mesa import Agent
 
@@ -27,6 +28,28 @@ class FootballPlayer(Agent):
         else:
             return True
 
+    def __calculate_distance_two_points(self, point_1, point_2):
+        """Calculates distance between two given points
+        
+        Args:
+            point_1 (tuple): Tuple with coordinates for point 1
+            point_2 (tuple): Tuple with coordinates for point 2
+        
+        Returns:
+            float: Distance as a float
+        """
+        # TODO maybe move to utils?
+        x1 = point_1[0]
+        y1 = point_1[1]
+        x2 = point_2[0]
+        y2 = point_2[1]
+
+        dist = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+        return dist
+
+    def __calculate_passing_probabilities(self):
+        return
+
     def move_forward(self):
         """Move forward one position
         """
@@ -39,6 +62,27 @@ class FootballPlayer(Agent):
 
         self.model.grid.move_agent(self, new_position)
         logger.info("Player moved forward to cell " + str(new_position))
+
+    def pass_ball_to_player(self, receiving_player_id):
+        if self.has_ball:
+            # stop having ball
+            self.has_ball = False
+            # make receiving player have ball
+            receiving_player_index = self.model.id_dict[receiving_player_id]
+            receiving_player_pos = self.model.schedule.agents[
+                receiving_player_index
+            ].pos
+            self.model.schedule.agents[receiving_player_index].has_ball = True
+
+            logger.info(
+                "Passed ball to player "
+                + str(receiving_player_id)
+                + " in position "
+                + str(receiving_player_pos)
+            )
+        else:
+            logger.error("Player does not have ball, so he can't pass it")
+            raise Exception("Player does not have ball")
 
     def check_forward(self):
         """Check if an opposing player is in front of player
@@ -71,6 +115,7 @@ class FootballPlayer(Agent):
             return True
 
     def step(self):
+        # TODO move all stepping forward into stepping forward
         logger.info(
             "Agent " + str(self.unique_id) + " activated on cell: " + str(self.pos)
         )
