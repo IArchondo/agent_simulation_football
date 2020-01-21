@@ -171,32 +171,33 @@ class FootballPlayer(Agent):
         Returns:
             boolean: False if an opposing player is in front
         """
-        current_position_x = self.pos[0]
-        current_position_y = self.pos[1]
-        forward_position = (
-            current_position_x,
-            current_position_y + self.movement_direction,
-        )
-        logger.info("Checking grid in " + str(forward_position))
-        forward_cell = self.model.grid.get_cell_list_contents(forward_position)
-        logger.debug("Found " + str(forward_cell))
-        forward_cell = list(forward_cell)
-
-        if len(forward_cell) > 0:
-            if forward_cell[0].team != self.team:
-                logger.info("Opposing player is in front")
-                return False
-
-            else:
-                logger.info("Teammate is in front")
-                return False
-
-        elif self.__is_on_border():
+        if self.__is_on_border():
             logger.info("Player has reached the edge of the pitch")
             return False
-
         else:
-            return True
+            current_position_x = self.pos[0]
+            current_position_y = self.pos[1]
+            forward_position = (
+                current_position_x,
+                current_position_y + self.movement_direction,
+            )
+
+            logger.info("Checking grid in " + str(forward_position))
+            forward_cell = self.model.grid.get_cell_list_contents(forward_position)
+            logger.debug("Found " + str(forward_cell))
+            forward_cell = list(forward_cell)
+
+            if len(forward_cell) > 0:
+                if forward_cell[0].team != self.team:
+                    logger.info("Opposing player is in front")
+                    return False
+
+                else:
+                    logger.info("Teammate is in front")
+                    return False
+
+            else:
+                return True
 
     def intent_pass_ball_to_player(self, receiving_player_id, success_probability):
         """ Try a pass to a given player, if missed, nearest opposing player receives ball

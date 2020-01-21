@@ -22,6 +22,7 @@ class FootballModel(Model):
 
         self.grid = SingleGrid(width, height, False)
         self.distance_model = self.__train_distance_model()
+        self.goal_coordinates = self.__determine_goal_midpoints()
 
         # TODO: change so it only activates player with ball
         self.schedule = RandomActivation(self)
@@ -104,6 +105,11 @@ class FootballModel(Model):
 
         return output_dict
 
+    def __determine_goal_midpoints(self):
+        goal_width = (self.grid.width - 1) / 2
+
+        return {"A": (goal_width, -0.5), "B": (goal_width, self.grid.height - 0.5)}
+
     def who_has_ball(self):
         """Determine which player has the ball
         
@@ -135,6 +141,12 @@ class FootballModel(Model):
         ball_coord = self.who_has_ball()["player"].pos
         ball_coord_x = ball_coord[0]
         ball_coord_y = ball_coord[1]
+        # gather goal_posts_position
+        goal_a_x = self.goal_coordinates["A"][0]
+        goal_a_y = self.goal_coordinates["A"][1]
+        goal_b_x = self.goal_coordinates["B"][0]
+        goal_b_y = self.goal_coordinates["B"][1]
+
         # TODO add way to know where the ball is
         teams = np.zeros((self.grid.width, self.grid.height))
 
@@ -150,6 +162,8 @@ class FootballModel(Model):
         plt.colorbar()
         # plot ball
         plt.scatter(ball_coord_y, ball_coord_x, c="black")
+        plt.scatter(goal_a_y, goal_a_x, c="orange")
+        plt.scatter(goal_b_y, goal_b_x, c="orange")
         plt.show()
 
     def step(self):
