@@ -186,7 +186,7 @@ class FootballPlayer(Agent):
             success_probability (float): probabilities of pass to succeed 
         """
 
-        # calculate distance of receiving player with all opponents
+        ## calculate distance of receiving player with all opponents
         receiving_player = self.model.schedule.agents[
             self.model.id_dict[receiving_player_id]
         ]
@@ -204,6 +204,7 @@ class FootballPlayer(Agent):
             for player in opposition
         }
 
+        # choose neares opponent as possible pass receipient
         closest_opp = distances[min(distances, key=distances.get)]
 
         closest_players = [
@@ -214,6 +215,7 @@ class FootballPlayer(Agent):
 
         pressing_player = random.choice(closest_players)
 
+        # draw an outcome at random with given probability
         passing_options = [receiving_player_id, pressing_player]
 
         passing_probs = [success_probability, 1 - success_probability]
@@ -222,6 +224,7 @@ class FootballPlayer(Agent):
 
         outcome = rng.multinomial(1, passing_probs, 1).tolist()[0]
 
+        ## give ball to winning player
         winning_player = passing_options[
             [i for i, x in enumerate(outcome) if x == 1][0]
         ]

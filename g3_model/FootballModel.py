@@ -71,7 +71,7 @@ class FootballModel(Model):
             (0, 0), (self.grid.width, self.grid.height)
         )
 
-        output_dict = train_linear_two_points((1, 0.9), (max_distance, 0.1))
+        output_dict = train_linear_two_points((1, 0.95), (max_distance, 0.1))
 
         return output_dict
 
@@ -129,6 +129,10 @@ class FootballModel(Model):
             logger.error("More than one player has the ball")
 
     def plot_grid(self):
+        # gather ball position
+        ball_coord = self.who_has_ball()["player"].pos
+        ball_coord_x = ball_coord[0]
+        ball_coord_y = ball_coord[1]
         # TODO add way to know where the ball is
         teams = np.zeros((self.grid.width, self.grid.height))
 
@@ -142,6 +146,8 @@ class FootballModel(Model):
 
         plt.imshow(teams, interpolation="nearest")
         plt.colorbar()
+        # plot ball
+        plt.scatter(ball_coord_y, ball_coord_x, c="black")
         plt.show()
 
     def step(self):
