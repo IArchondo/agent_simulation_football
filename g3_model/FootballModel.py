@@ -1,4 +1,6 @@
 from mesa import Model
+
+# TODO activate player with ball
 from mesa.time import RandomActivation
 from mesa.space import SingleGrid
 from mesa.datacollection import DataCollector
@@ -6,6 +8,7 @@ from mesa.datacollection import DataCollector
 from g2_player.FootballPlayer import FootballPlayer
 
 import logging
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -42,6 +45,42 @@ class FootballModel(Model):
             empty_place = self.grid.find_empty()
             self.grid.place_agent(player, empty_place)
             logger.info("Agent " + str(self.ids[i]) + " placed in " + str(empty_place))
+
+        # Give the ball to a player
+        ball_options = self.__determine_furthest_back_per_team()
+        kickoff_team = random.choice(list(ball_options.keys()))
+        chosen_player = ball_options[kickoff_team]
+
+        logger.info("Team " + str(kickoff_team) + " wins the coin toss")
+        self.schedule.agents[self.id_dict[chosen_player]].has_ball = True
+        logger.info("Ball given to player " + str(chosen_player))
+
+    def __determine_furthest_back_per_team(self):
+        """Determine player that is furthest back for each team
+        
+        Returns:
+            dict: Dict with teams as keys and player id as value
+        """
+        pos_dict = {agent.unique_id: agent.pos[1] for agent in self.schedule.agents}
+
+        team_A = {key: pos_dict[key] for key in pos_dict.keys() if key[0] == "A"}
+        team_B = {key: pos_dict[key] for key in pos_dict.keys() if key[0] == "B"}
+
+        # Calcualte min value for positions in each team
+        min_A = team_A[min(team_A, key=team_A.get)]
+        min_B = team_B[max(team_B, key=team_B.get)]
+
+        # # Get players located in such value
+        players_A = [key for key in team_A.keys() if pos_dict[key] == min_A]
+        players_B = [key for key in team_B.keys() if pos_dict[key] == min_B]
+
+        # Return random player from list
+        output_dict = {
+            "A": random.choice(players_A),
+            "B": random.choice(players_B),
+        }
+
+        return output_dict
 
     def who_has_ball(self):
         """Determine which player has the ball
