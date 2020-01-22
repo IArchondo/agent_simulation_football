@@ -241,7 +241,7 @@ class FootballModel(Model):
         else:
             logger.error("More than one player has the ball")
 
-    def plot_grid(self):
+    def plot_grid(self, title="Result"):
         # gather ball position
         ball_coord = self.who_has_ball()["player"].pos
         ball_coord_x = ball_coord[0]
@@ -390,7 +390,17 @@ class FootballModel(Model):
         plt.scatter(goal_a_y, goal_a_x, c="orange", marker="d", s=250, zorder=4)
         plt.scatter(goal_b_y, goal_b_x, c="orange", marker="d", s=250, zorder=4)
 
-        ax.set_title("Game played")
+        if title == "Result":
+            title = (
+                "A - "
+                + str(self.result["A"])
+                + " : "
+                + str(self.result["B"])
+                + " - B"
+                + "\n"
+            )
+
+        ax.set_title(title, fontweight="bold")
         plt.show()
 
     def step(self, plot_outcome=True):
