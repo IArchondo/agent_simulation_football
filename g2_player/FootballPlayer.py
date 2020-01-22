@@ -207,11 +207,17 @@ class FootballPlayer(Agent):
             receiving_player_id (str): Intended receiving player
             success_probability (float): probabilities of pass to succeed 
         """
-
         ## calculate distance of receiving player with all opponents
         receiving_player = self.model.schedule.agents[
             self.model.id_dict[receiving_player_id]
         ]
+
+        logger.info(
+            "Pass intended to player "
+            + str(receiving_player_id)
+            + " in position "
+            + str(receiving_player.pos)
+        )
 
         opposition = [
             player
@@ -303,6 +309,7 @@ class FootballPlayer(Agent):
         if scoring_outcome:
             logger.info("GOAL SCORED!!")
             self.goals_scored = self.goals_scored + 1
+            self.model.update_result()
 
         else:
             logger.info("Shot saved!")

@@ -132,6 +132,33 @@ class FootballModel(Model):
 
         return output_dict
 
+    def update_result(self):
+        """Count number of goals scored per team and update result
+        """
+        team_A_goals = sum(
+            [
+                player.goals_scored
+                for player in self.schedule.agents
+                if player.team == "A"
+            ]
+        )
+        team_B_goals = sum(
+            [
+                player.goals_scored
+                for player in self.schedule.agents
+                if player.team == "B"
+            ]
+        )
+
+        self.result = {"A": team_A_goals, "B": team_B_goals}
+        logger.info(
+            "Score stands: A - "
+            + str(team_A_goals)
+            + " : "
+            + str(team_B_goals)
+            + " - B"
+        )
+
     def determine_furthest_back_per_team(self):
         """Determine player that is furthest back for each team
         
