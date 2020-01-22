@@ -9,16 +9,20 @@ from g3_model.FootballModel import FootballModel
 
 football = FootballModel(11, 6, 10, 2)
 
-output = football.determine_scoring_probabilities()
-
-output["prob_B"]
-
-# probabilities seem to be somehow reversed fix tomorrow
-
-output["A"][min(output["A"], key=output["A"].get)]
-
-for i in range(10):
+for i in range(20):
     football.step()
 
-for a, b, c in football.grid.coord_iter():
-    print(b)
+football.who_has_ball()["player"].shoot()
+
+
+# TODO add way to know where the ball is
+# xg = np.zeros((football.grid.width, football.grid.height))
+
+# for cell in football.grid.coord_iter():
+#     cell_content, x, y = cell
+#     xg[x][y] = output["prob_A"][(x,y)]
+
+# import matplotlib.pyplot as plt
+
+# plt.imshow(xg, interpolation="nearest")
+# plt.colorbar()

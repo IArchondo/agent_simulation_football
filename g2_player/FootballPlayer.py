@@ -17,6 +17,8 @@ class FootballPlayer(Agent):
         self.team = team
         self.has_ball = False
 
+        self.goals_scored = 0
+
         if self.team == "A":
             self.movement_direction = 1
 
@@ -164,19 +166,6 @@ class FootballPlayer(Agent):
 
         return output_dict
 
-    def move_forward(self):
-        """Move forward one position
-        """
-        current_position_x = self.pos[0]
-        current_position_y = self.pos[1]
-        new_position = (
-            current_position_x,
-            current_position_y + self.movement_direction,
-        )
-
-        self.model.grid.move_agent(self, new_position)
-        logger.info("Player moved forward to cell " + str(new_position))
-
     def check_forward(self):
         """Check if an opposing player is in front of player
         
@@ -270,6 +259,70 @@ class FootballPlayer(Agent):
             logger.info("Received by " + str(winning_player))
 
         self.__give_ball_to_player(winning_player)
+
+    # actionabile methods
+
+    def move_forward(self):
+        """Move forward one position
+        """
+        current_position_x = self.pos[0]
+        current_position_y = self.pos[1]
+        new_position = (
+            current_position_x,
+            current_position_y + self.movement_direction,
+        )
+
+        self.model.grid.move_agent(self, new_position)
+        logger.info("Player moved forward to cell " + str(new_position))
+
+    def shoot(self):
+        """Player shoots and scores depending on his position on field,
+            ball is taken back into play by the furthest back player from 
+            the opposition
+        """
+        logger.info(
+            "Player "
+            + str(self.unique_id)
+            + " shoots from position "
+            + str(self.pos)
+            + "!"
+        )
+        scoring_probability = self.calculate_scoring_probability()
+        scoring_possible_outcomes = [True, False]
+        scoring_probabilities = [scoring_probability, 1 - scoring_probability]
+
+        # TODO pass this to self
+        rng = np.random.default_rng()
+
+        scoring_simulation = rng.multinomial(1, scoring_probabilities, 1).tolist()[0]
+
+        scoring_outcome = scoring_possible_outcomes[
+            [i for i, x in enumerate(scoring_simulation) if x == 1][0]
+        ]
+
+        if scoring_outcome:
+            logger.info("GOAL SCORED!!")
+            self.goals_scored = self.goals_scored + 1
+
+        else:
+            logger.info("Shot saved!")
+
+        # no matter the outcome, give ball to the furthest back opponent
+        self.has_ball = False
+
+        if self.team == "A":
+            kickoff_player = self.model.determine_furthest_back_per_team()["B"]
+            self.model.schedule.agents[
+                self.model.id_dict[kickoff_player]
+            ].has_ball = True
+
+        if self.team == "B":
+            kickoff_player = self.model.determine_furthest_back_per_team()["A"]
+            self.model.schedule.agents[
+                self.model.id_dict[kickoff_player]
+            ].has_ball = True
+
+        logger.info("Player " + str(kickoff_player) + " to take ball back into play")
 
     def look_to_pass_ball(self):
         """Evaluate passing candidates, choose one and intend a pass

@@ -24,6 +24,8 @@ class FootballModel(Model):
     def __init__(self, players_per_team, width, height, goals_to_win):
         self.players_per_team = players_per_team
 
+        self.result = {"A": 0, "B": 0}
+
         self.grid = SingleGrid(width, height, False)
         self.distance_model = self.__train_distance_model()
         self.goal_coordinates = self.__determine_goal_midpoints()
@@ -57,7 +59,7 @@ class FootballModel(Model):
             logger.info("Agent " + str(self.ids[i]) + " placed in " + str(empty_place))
 
         # Give the ball to a player
-        ball_options = self.__determine_furthest_back_per_team()
+        ball_options = self.determine_furthest_back_per_team()
         kickoff_team = random.choice(list(ball_options.keys()))
         chosen_player = ball_options[kickoff_team]
 
@@ -80,33 +82,6 @@ class FootballModel(Model):
         )
 
         output_dict = train_linear_two_points((1, 0.95), (max_distance, 0.1))
-
-        return output_dict
-
-    def __determine_furthest_back_per_team(self):
-        """Determine player that is furthest back for each team
-        
-        Returns:
-            dict: Dict with teams as keys and player id as value
-        """
-        pos_dict = {agent.unique_id: agent.pos[1] for agent in self.schedule.agents}
-
-        team_A = {key: pos_dict[key] for key in pos_dict.keys() if key[0] == "A"}
-        team_B = {key: pos_dict[key] for key in pos_dict.keys() if key[0] == "B"}
-
-        # Calcualte min value for positions in each team
-        min_A = team_A[min(team_A, key=team_A.get)]
-        min_B = team_B[max(team_B, key=team_B.get)]
-
-        # # Get players located in such value
-        players_A = [key for key in team_A.keys() if pos_dict[key] == min_A]
-        players_B = [key for key in team_B.keys() if pos_dict[key] == min_B]
-
-        # Return random player from list
-        output_dict = {
-            "A": random.choice(players_A),
-            "B": random.choice(players_B),
-        }
 
         return output_dict
 
@@ -153,6 +128,33 @@ class FootballModel(Model):
         output_dict = {
             "A": prob_A,
             "B": prob_B,
+        }
+
+        return output_dict
+
+    def determine_furthest_back_per_team(self):
+        """Determine player that is furthest back for each team
+        
+        Returns:
+            dict: Dict with teams as keys and player id as value
+        """
+        pos_dict = {agent.unique_id: agent.pos[1] for agent in self.schedule.agents}
+
+        team_A = {key: pos_dict[key] for key in pos_dict.keys() if key[0] == "A"}
+        team_B = {key: pos_dict[key] for key in pos_dict.keys() if key[0] == "B"}
+
+        # Calcualte min value for positions in each team
+        min_A = team_A[min(team_A, key=team_A.get)]
+        min_B = team_B[max(team_B, key=team_B.get)]
+
+        # # Get players located in such value
+        players_A = [key for key in team_A.keys() if pos_dict[key] == min_A]
+        players_B = [key for key in team_B.keys() if pos_dict[key] == min_B]
+
+        # Return random player from list
+        output_dict = {
+            "A": random.choice(players_A),
+            "B": random.choice(players_B),
         }
 
         return output_dict
