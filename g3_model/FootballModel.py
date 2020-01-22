@@ -17,6 +17,7 @@ import random
 import numpy as np
 import yaml
 import matplotlib.pyplot as plt
+from matplotlib import colors
 
 logger = logging.getLogger("FootballModel")
 
@@ -240,12 +241,64 @@ class FootballModel(Model):
                 if cell_content.team == "B":
                     teams[x][y] = 2
 
-        plt.imshow(teams, interpolation="nearest")
-        plt.colorbar()
+        # define colors
+        cmap = colors.ListedColormap(["forestgreen", "forestgreen", "forestgreen"])
+        bounds = [0, 5, 1.5, 10]
+        norm = colors.BoundaryNorm(bounds, cmap.N)
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(teams, interpolation="nearest", cmap=cmap)
+        plt.axvline((self.grid.height / 2) - 0.5, color="white", zorder=1)
+        plt.axvline(-0.5, color="black", zorder=3)
+        plt.axvline(self.grid.height - 0.5, color="black", zorder=3)
+
+        ax.set_xticks(np.arange(self.grid.height))
+        ax.set_yticks(np.arange(self.grid.width))
+
+        # plot player labels
+        for player in self.schedule.agents:
+            if player.team == "A":
+                back_color = "white"
+                color = "black"
+            else:
+                back_color = "black"
+                color = "white"
+
+            plt.scatter(
+                player.pos[1], player.pos[0], marker="s", s=450, c=color, zorder=2
+            )
+            plt.annotate(
+                player.unique_id,
+                (player.pos[1] - 0.32, player.pos[0] + 0.1),
+                c=back_color,
+                size=8,
+                weight="bold",
+                zorder=2,
+            )
+            # plt.scatter(
+            #     player.pos[1],
+            #     player.pos[0],
+            #     facecolors="none",
+            #     edgecolors=color,
+            #     marker="s",
+            #     s=450,
+            #     linewidth=2,
+            # )
         # plot ball
-        plt.scatter(ball_coord_y, ball_coord_x, c="black")
-        plt.scatter(goal_a_y, goal_a_x, c="orange")
-        plt.scatter(goal_b_y, goal_b_x, c="orange")
+        plt.scatter(
+            ball_coord_y,
+            ball_coord_x,
+            facecolors="none",
+            edgecolors="orangered",
+            marker="s",
+            s=450,
+            linewidth=3,
+            zorder=10,
+        )
+        plt.scatter(goal_a_y, goal_a_x, c="orange", marker="d", s=250, zorder=4)
+        plt.scatter(goal_b_y, goal_b_x, c="orange", marker="d", s=250, zorder=4)
+
+        ax.set_title("Game played")
         plt.show()
 
     def step(self, plot_outcome=True):
