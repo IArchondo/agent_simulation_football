@@ -171,11 +171,11 @@ class FootballPlayer(Agent):
         output_dict = {
             player.unique_id: {
                 "position": player_positions[player],
-                "passing": passing_probabilities[player],
-                "interception": interception_probabilities[player],
-                "final_passing": final_passing_probability[player],
-                "scoring": scoring_probabilities[player],
-                "decision": decision_probability[player],
+                "passing_probs": passing_probabilities[player],
+                "interception_probs": interception_probabilities[player],
+                "final_passing_probs": final_passing_probability[player],
+                "scoring_probs": scoring_probabilities[player],
+                "decision_probs": decision_probability[player],
             }
             for player in teammates
         }
@@ -350,15 +350,21 @@ class FootballPlayer(Agent):
 
         logger.info("Player " + str(kickoff_player) + " to take ball back into play")
 
-    def look_to_pass_ball(self):
+    def look_to_pass_or_shoot_ball(self):
         """Evaluate passing candidates, choose one and intend a pass
         """
+        scoring_prob = self.model.scoring_probabilities[self.team][self.pos]
         passing_prob = self.calculate_passing_probabilities()
 
-        chosen_candidate = passing_prob["decision"]
-        probabilities = passing_prob[chosen_candidate]["final_passing"]
+        best_passing_prob = passing_prob[passing_prob["decision"]]["decision_probs"]
 
-        self.intent_pass_ball_to_player(chosen_candidate, probabilities)
+        if scoring_prob > best_passing_prob:
+            self.shoot()
+        else:
+            chosen_candidate = passing_prob["decision"]
+            probabilities = passing_prob[chosen_candidate]["final_passing_probs"]
+
+            self.intent_pass_ball_to_player(chosen_candidate, probabilities)
 
     def step(self):
         # TODO move all stepping forward into stepping forward
@@ -370,5 +376,5 @@ class FootballPlayer(Agent):
             self.move_forward()
 
         else:
-            self.look_to_pass_ball()
+            self.look_to_pass_or_shoot_ball()
 

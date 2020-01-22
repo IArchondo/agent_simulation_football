@@ -21,10 +21,11 @@ logger = logging.getLogger("FootballModel")
 
 
 class FootballModel(Model):
-    def __init__(self, players_per_team, width, height, goals_to_win):
+    def __init__(self, players_per_team, width, height, game_length):
         self.players_per_team = players_per_team
 
         self.result = {"A": 0, "B": 0}
+        self.game_length = game_length
 
         self.grid = SingleGrid(width, height, False)
         self.distance_model = self.__train_distance_model()
@@ -39,7 +40,6 @@ class FootballModel(Model):
         self.ids_team_a = ["A_" + str(id) for id in range(self.players_per_team)]
         self.ids_team_b = ["B_" + str(id) for id in range(self.players_per_team)]
         self.ids = self.ids_team_a + self.ids_team_b
-        # TODO since id is still only an integer, make a dict between real ids and integers
 
         self.id_dict = {}
         for i in range(len(self.ids)):
@@ -223,7 +223,6 @@ class FootballModel(Model):
         goal_b_x = self.goal_coordinates["B"][0]
         goal_b_y = self.goal_coordinates["B"][1]
 
-        # TODO add way to know where the ball is
         teams = np.zeros((self.grid.width, self.grid.height))
 
         for cell in self.grid.coord_iter():
@@ -242,6 +241,36 @@ class FootballModel(Model):
         plt.scatter(goal_b_y, goal_b_x, c="orange")
         plt.show()
 
-    def step(self):
+    def step(self, plot_outcome=True):
+        """Activate player that has the ball
+        
+        Args:
+            plot_outcome (bool, optional): Should outcome of play be plotted.
+                 Defaults to True.
+        """
         self.who_has_ball()["player"].step()
+        if plot_outcome:
+            self.plot_grid()
+
+    def simulate_whole_game(self, plot_outcome=True):
+        """Simulate the length of the entire game
+        
+        Args:
+            plot_outcome (bool, optional): Should outcome of play be plotted.
+                 Defaults to True.
+        """
+        for i in range(self.game_length):
+            self.step(plot_outcome=plot_outcome)
+        self.final_result = self.result
+        logger.info("FINAL RESULT")
+        logger.info(
+            "A - "
+            + str(self.final_result["A"])
+            + " : "
+            + str(self.final_result["B"])
+            + " - B"
+        )
+
         self.plot_grid()
+        return self.final_result
+
