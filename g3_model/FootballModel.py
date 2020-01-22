@@ -35,6 +35,7 @@ class FootballModel(Model):
         self.grid = SingleGrid(width, height, False)
         self.distance_model = self.__train_distance_model()
         self.goal_coordinates = self.__determine_goal_midpoints()
+        self.penalty_box_measures = self.__determine_penalty_box()
         self.scoring_probabilities = self.__determine_scoring_probabilities()
 
         # TODO: change so it only activates player with ball
@@ -92,6 +93,26 @@ class FootballModel(Model):
         )
 
         return output_dict
+
+    def __determine_penalty_box(self):
+        """Calculate measures needed to draw penalty boxes
+        
+        Returns:
+            dict: Dict with four required lengths
+            #TODO explain this somehow
+        """
+        penalty_box_height = (16.5 / 105) * self.grid.height
+        penalty_box_width = (40 / 68) * self.grid.width
+        penalty_box_buffer = (self.grid.width - penalty_box_width) / 2
+
+        measures_penalty_boxes = {
+            "length_a": round(penalty_box_buffer, 2),
+            "length_b": round(penalty_box_buffer + penalty_box_width, 2),
+            "length_c": round(penalty_box_height, 2),
+            "length_d": round(self.grid.height - penalty_box_height, 2),
+        }
+
+        return measures_penalty_boxes
 
     def __determine_goal_midpoints(self):
         goal_width = (self.grid.width - 1) / 2
@@ -248,9 +269,78 @@ class FootballModel(Model):
 
         fig, ax = plt.subplots()
         im = ax.imshow(teams, interpolation="nearest", cmap=cmap)
+
+        # plot pitch lines
+        # TODO maybe move this to utils?
         plt.axvline((self.grid.height / 2) - 0.5, color="white", zorder=1)
         plt.axvline(-0.5, color="black", zorder=3)
         plt.axvline(self.grid.height - 0.5, color="black", zorder=3)
+
+        a_1_1, a_1_2 = (
+            [-0.5, self.penalty_box_measures["length_c"] - 0.5],
+            [
+                self.penalty_box_measures["length_a"] - 0.5,
+                self.penalty_box_measures["length_a"] - 0.5,
+            ],
+        )
+
+        plt.plot(a_1_1, a_1_2, c="white", zorder=1)
+
+        a_2_1, a_2_2 = (
+            [
+                self.penalty_box_measures["length_c"] - 0.5,
+                self.penalty_box_measures["length_c"] - 0.5,
+            ],
+            [
+                self.penalty_box_measures["length_a"] - 0.5,
+                self.penalty_box_measures["length_b"] - 0.5,
+            ],
+        )
+
+        plt.plot(a_2_1, a_2_2, c="white", zorder=1)
+
+        a_3_1, a_3_2 = (
+            [-0.5, self.penalty_box_measures["length_c"] - 0.5],
+            [
+                self.penalty_box_measures["length_b"] - 0.5,
+                self.penalty_box_measures["length_b"] - 0.5,
+            ],
+        )
+
+        plt.plot(a_3_1, a_3_2, c="white", zorder=1)
+
+        b_1_1, b_1_2 = (
+            [self.penalty_box_measures["length_d"] - 0.5, self.grid.height - 0.5,],
+            [
+                self.penalty_box_measures["length_a"] - 0.5,
+                self.penalty_box_measures["length_a"] - 0.5,
+            ],
+        )
+
+        plt.plot(b_1_1, b_1_2, c="white", zorder=1)
+
+        b_2_1, b_2_2 = (
+            [
+                self.penalty_box_measures["length_d"] - 0.5,
+                self.penalty_box_measures["length_d"] - 0.5,
+            ],
+            [
+                self.penalty_box_measures["length_a"] - 0.5,
+                self.penalty_box_measures["length_b"] - 0.5,
+            ],
+        )
+
+        plt.plot(b_2_1, b_2_2, c="white", zorder=1)
+
+        b_3_1, b_3_2 = (
+            [self.penalty_box_measures["length_d"] - 0.5, self.grid.height - 0.5,],
+            [
+                self.penalty_box_measures["length_b"] - 0.5,
+                self.penalty_box_measures["length_b"] - 0.5,
+            ],
+        )
+
+        plt.plot(b_3_1, b_3_2, c="white", zorder=1)
 
         ax.set_xticks(np.arange(self.grid.height))
         ax.set_yticks(np.arange(self.grid.width))
@@ -275,15 +365,7 @@ class FootballModel(Model):
                 weight="bold",
                 zorder=2,
             )
-            # plt.scatter(
-            #     player.pos[1],
-            #     player.pos[0],
-            #     facecolors="none",
-            #     edgecolors=color,
-            #     marker="s",
-            #     s=450,
-            #     linewidth=2,
-            # )
+
         # plot ball
         plt.scatter(
             ball_coord_y,
