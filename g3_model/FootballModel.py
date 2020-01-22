@@ -27,6 +27,7 @@ class FootballModel(Model):
         self.grid = SingleGrid(width, height, False)
         self.distance_model = self.__train_distance_model()
         self.goal_coordinates = self.__determine_goal_midpoints()
+        self.scoring_probabilities = self.__determine_scoring_probabilities()
 
         # TODO: change so it only activates player with ball
         self.schedule = RandomActivation(self)
@@ -114,20 +115,20 @@ class FootballModel(Model):
 
         return {"A": (goal_width, -0.5), "B": (goal_width, self.grid.height - 0.5)}
 
-    def determine_scoring_probabilities(self):
+    def __determine_scoring_probabilities(self):
         """Determine scoring probabilities from every point on the pitch
         
         Returns:
             dict: dict with scoring probabilities for each position
         """
-
+        # calculate distance to opposing goal for each team
         dist_A = {
-            (x, y): calculate_distance_two_points(self.goal_coordinates["A"], (x, y))
+            (x, y): calculate_distance_two_points(self.goal_coordinates["B"], (x, y))
             for a, x, y in self.grid.coord_iter()
         }
 
         dist_B = {
-            (x, y): calculate_distance_two_points(self.goal_coordinates["B"], (x, y))
+            (x, y): calculate_distance_two_points(self.goal_coordinates["A"], (x, y))
             for a, x, y in self.grid.coord_iter()
         }
 
@@ -135,7 +136,8 @@ class FootballModel(Model):
         min_dist = dist_A[min(dist_A, key=dist_A.get)]
         max_dist = dist_A[max(dist_A, key=dist_A.get)]
 
-        point_min = (min_dist, 0.7)
+        # TODO this should be adjustable in yaml
+        point_min = (min_dist, 0.8)
         point_max = (max_dist, 0.01)
 
         dist_model = train_linear_two_points(point_min, point_max)
@@ -149,10 +151,8 @@ class FootballModel(Model):
         }
 
         output_dict = {
-            "dist_A": dist_A,
-            "dist_B": dist_B,
-            "prob_A": prob_A,
-            "prob_B": prob_B,
+            "A": prob_A,
+            "B": prob_B,
         }
 
         return output_dict

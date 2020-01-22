@@ -85,6 +85,18 @@ class FootballPlayer(Agent):
             logger.error("Player does not have ball, so he can't pass it")
             raise Exception("Player does not have ball")
 
+    def calculate_scoring_probability(self):
+        """Calculate current scoring probability
+        
+        Returns:
+            float: current scoring probability
+        """
+        current_position = self.pos
+
+        scoring_probability = self.model.scoring_probabilities[self.team][self.pos]
+
+        return scoring_probability
+
     def calculate_passing_probabilities(self):
         """Calculate probability of a succesful pass for each teammate
         
