@@ -276,6 +276,16 @@ class FootballModel(Model):
         plt.axvline(-0.5, color="black", zorder=3)
         plt.axvline(self.grid.height - 0.5, color="black", zorder=3)
 
+        plt.scatter(
+            (self.grid.height / 2) - 0.5,
+            (self.grid.width / 2) - 0.5,
+            marker="o",
+            s=3300,
+            facecolors="none",
+            edgecolors="white",
+            zorder=1,
+        )
+
         a_1_1, a_1_2 = (
             [-0.5, self.penalty_box_measures["length_c"] - 0.5],
             [
