@@ -7,13 +7,10 @@ logging.basicConfig(level=logging.INFO)
 
 from g3_model.FootballModel import FootballModel
 
-football = FootballModel(11, 6, 10, 2)
+football = FootballModel(10, 7, 10, 2)
 
 for i in range(20):
     football.step()
-
-football.who_has_ball()["player"].shoot()
-
 
 # TODO add way to know where the ball is
 # xg = np.zeros((football.grid.width, football.grid.height))

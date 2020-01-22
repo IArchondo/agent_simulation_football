@@ -103,7 +103,8 @@ class FootballPlayer(Agent):
         """Calculate probability of a succesful pass for each teammate
         
         Returns:
-            dict: Dict with passing, interception and general probabilities
+            dict: Dict with passing, interception, scoring and general probabilities
+                best decision is also included
         """
         # determine distance to each teammate
         teammates = [
@@ -132,31 +133,49 @@ class FootballPlayer(Agent):
             for player in teammates
         }
 
+        # only to make interpretation of output dict easier
+        player_positions = {player: player.pos for player in teammates}
+
+        scoring_probabilities = {
+            player: self.model.scoring_probabilities[player.team][player.pos]
+            for player in teammates
+        }
+
         # TODO closeness to goal should be also taken into account
-        general_probability = {
+        final_passing_probability = {
             player: passing_probabilities[player]
             * (1 - interception_probabilities[player])
             for player in teammates
         }
 
+        decision_probability = {
+            player: final_passing_probability[player] * scoring_probabilities[player]
+            for player in teammates
+        }
+
         ## Decide chosen pass candidate
-        max_prob = general_probability[
-            max(general_probability, key=general_probability.get)
+        max_prob = decision_probability[
+            max(decision_probability, key=decision_probability.get)
         ]
 
         decision_candidates = [
             player.unique_id
-            for player in general_probability.keys()
-            if general_probability[player] == max_prob
+            for player in decision_probability.keys()
+            if decision_probability[player] == max_prob
         ]
 
+        # if a group of candidates equally good(highly unlikely),
+        # choose one at random
         decision = random.choice(decision_candidates)
 
         output_dict = {
             player.unique_id: {
+                "position": player_positions[player],
                 "passing": passing_probabilities[player],
                 "interception": interception_probabilities[player],
-                "general": general_probability[player],
+                "final_passing": final_passing_probability[player],
+                "scoring": scoring_probabilities[player],
+                "decision": decision_probability[player],
             }
             for player in teammates
         }
@@ -337,7 +356,7 @@ class FootballPlayer(Agent):
         passing_prob = self.calculate_passing_probabilities()
 
         chosen_candidate = passing_prob["decision"]
-        probabilities = passing_prob[chosen_candidate]["general"]
+        probabilities = passing_prob[chosen_candidate]["final_passing"]
 
         self.intent_pass_ball_to_player(chosen_candidate, probabilities)
 
