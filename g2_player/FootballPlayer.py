@@ -128,7 +128,9 @@ class FootballPlayer(Agent):
         # TODO 0.25 should be possible to alter via a yaml file
         interception_probabilities = {
             player: cap_value(
-                0.25 * self.__count_surrounding_opposing_players(player), 1
+                self.model.parameters["pressure_effect"]
+                * self.__count_surrounding_opposing_players(player),
+                1,
             )
             for player in teammates
         }

@@ -15,6 +15,7 @@ from g2_player.FootballPlayer import FootballPlayer
 import logging
 import random
 import numpy as np
+import yaml
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger("FootballModel")
@@ -22,6 +23,9 @@ logger = logging.getLogger("FootballModel")
 
 class FootballModel(Model):
     def __init__(self, players_per_team, width, height, game_length):
+        # load parameters
+        self.parameters = yaml.full_load(open("general_parameters.yaml"))
+
         self.players_per_team = players_per_team
 
         self.result = {"A": 0, "B": 0}
@@ -81,7 +85,10 @@ class FootballModel(Model):
             (0, 0), (self.grid.width, self.grid.height)
         )
 
-        output_dict = train_linear_two_points((1, 0.95), (max_distance, 0.1))
+        output_dict = train_linear_two_points(
+            (1, self.parameters["min_distance_passing_perc"]),
+            (max_distance, self.parameters["max_distance_passing_perc"]),
+        )
 
         return output_dict
 
@@ -112,8 +119,8 @@ class FootballModel(Model):
         max_dist = dist_A[max(dist_A, key=dist_A.get)]
 
         # TODO this should be adjustable in yaml
-        point_min = (min_dist, 0.8)
-        point_max = (max_dist, 0.01)
+        point_min = (min_dist, self.parameters["min_distance_shooting_perc"])
+        point_max = (max_dist, self.parameters["max_distance_shooting_perc"])
 
         dist_model = train_linear_two_points(point_min, point_max)
 

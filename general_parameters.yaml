@@ -1,0 +1,5 @@
+max_distance_passing_perc: 0.1
+min_distance_passing_perc: 0.95
+max_distance_shooting_perc: 0.01 
+min_distance_shooting_perc: 0.8
+pressure_effect: 0.25
