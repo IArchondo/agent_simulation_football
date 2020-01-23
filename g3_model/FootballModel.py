@@ -9,9 +9,14 @@ from g1_utils.utils import (
     calculate_distance_two_points,
     train_linear_two_points,
     apply_linear_model,
+    check_if_folder_exists,
 )
 from g2_player.FootballPlayer import FootballPlayer
 
+from pathlib import Path
+import os
+import datetime
+import re
 import logging
 import random
 import numpy as np
@@ -26,6 +31,9 @@ class FootballModel(Model):
     def __init__(self, players_per_team, width, height, game_length):
         # load parameters
         self.parameters = yaml.full_load(open("general_parameters.yaml"))
+
+        # generate game id
+        self.game_id = self.__generate_game_id()
 
         self.players_per_team = players_per_team
 
@@ -73,7 +81,23 @@ class FootballModel(Model):
         self.schedule.agents[self.id_dict[chosen_player]].has_ball = True
         logger.info("Ball given to player " + str(chosen_player))
 
-        self.plot_grid("Game kickoff")
+        self.plot_grid(minute="", subtitle="Game kickoff")
+
+    def __generate_game_id(self):
+        """Generate game id depending on current time
+        
+        Returns:
+            str: Game id
+        """
+        time_str = str(datetime.datetime.now())
+
+        replacements = {replace: "" for replace in ["-", " ", ":", "."]}
+        replacements = dict((re.escape(k), v) for k, v in replacements.items())
+
+        pattern = re.compile("|".join(replacements.keys()))
+        game_id = pattern.sub(lambda x: replacements[re.escape(x.group(0))], time_str)
+
+        return game_id
 
     def __train_distance_model(self):
         """Calculates the maximum distance in the pitch and trains a linear model
@@ -241,12 +265,14 @@ class FootballModel(Model):
         else:
             logger.error("More than one player has the ball")
 
-    def plot_grid(self, subtitle="No subtitle specified"):
+    def plot_grid(self, minute=1, subtitle="No subtitle specified", save_fig=False):
         """Plot game grid
         
         Args:
             subtitle (str, optional): Subtitle for plot. 
                 Defaults to "No subtitle specified".
+            save_fig (bool, optional): If True, save figure in determined folder
+                structure. Defaults to False.
         """
         # gather ball position
         ball_coord = self.who_has_ball()["player"].pos
@@ -402,7 +428,9 @@ class FootballModel(Model):
                 + str(self.result["A"])
                 + " : "
                 + str(self.result["B"])
-                + " - B"
+                + " - B ("
+                + str(minute)
+                + "')"
                 + "\n"
             )
             + "\n"
@@ -410,11 +438,22 @@ class FootballModel(Model):
         )
 
         plt.title(title, fontweight="bold")
-        # plt.suptitle(subtitle)
+
+        # save graph if desired
+        if save_fig:
+            if check_if_folder_exists(self.game_id, "Images") == False:
+                os.mkdir(Path("Images") / self.game_id)
+                logger.info("Created folder for game")
+            plt.savefig(
+                Path("Images/" + str(self.game_id))
+                / (str(self.game_id) + "_" + str(minute) + ".png"),
+                bbox_inches="tight",
+            )
+            logger.info("Image saved")
 
         plt.show()
 
-    def step(self, plot_outcome=True):
+    def step(self, minute=1, plot_outcome=True, save_plots=False):
         """Activate player that has the ball
         
         Args:
@@ -423,17 +462,20 @@ class FootballModel(Model):
         """
         plot_subtitle = self.who_has_ball()["player"].step()
         if plot_outcome:
-            self.plot_grid(plot_subtitle)
+            self.plot_grid(minute=minute, subtitle=plot_subtitle, save_fig=save_plots)
 
-    def simulate_whole_game(self, plot_outcome=True):
+    def simulate_whole_game(self, plot_outcome=True, save_plots=False):
         """Simulate the length of the entire game
         
         Args:
             plot_outcome (bool, optional): Should outcome of play be plotted.
                  Defaults to True.
         """
+        if save_plots:
+            self.plot_grid(minute="", subtitle="KICKOFF", save_fig=True)
+
         for i in range(self.game_length):
-            self.step(plot_outcome=plot_outcome)
+            self.step(minute=i + 1, plot_outcome=plot_outcome, save_plots=save_plots)
         self.final_result = self.result
         logger.info("FINAL RESULT")
         logger.info(
@@ -444,6 +486,8 @@ class FootballModel(Model):
             + " - B"
         )
 
-        self.plot_grid("FINAL WHISTLE!")
+        self.plot_grid(
+            minute=self.game_length, subtitle="FINAL WHISTLE!", save_fig=save_plots
+        )
         return self.final_result
 

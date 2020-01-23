@@ -1,6 +1,8 @@
 import math
 from numpy import ones, vstack
 from numpy.linalg import lstsq
+import os
+from pathlib import Path
 
 
 def cap_value(number, cap_number):
@@ -76,4 +78,19 @@ def apply_linear_model(value, model_dict):
     output_value = model_dict["intercept"] + model_dict["slope"] * value
 
     return output_value
+
+
+def check_if_folder_exists(folder_name, root_input=""):
+    """Check if a folder exists in given root directory
+    
+    Args:
+        folder_name (str): name of folder
+        root_input (str, optional): Root directory. Defaults to "".
+    
+    Returns:
+        bool: boolean indicating whether file exists
+    """
+    result = os.path.isdir(Path(root_input) / folder_name)
+
+    return result
 
