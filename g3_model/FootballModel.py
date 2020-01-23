@@ -81,7 +81,7 @@ class FootballModel(Model):
         self.schedule.agents[self.id_dict[chosen_player]].has_ball = True
         logger.info("Ball given to player " + str(chosen_player))
 
-        self.plot_grid(minute="", subtitle="Game kickoff")
+        self.plot_grid(minute=0, subtitle="Game kickoff")
 
     def __generate_game_id(self):
         """Generate game id depending on current time
@@ -446,7 +446,7 @@ class FootballModel(Model):
                 logger.info("Created folder for game")
             plt.savefig(
                 Path("Images/" + str(self.game_id))
-                / (str(self.game_id) + "_" + str(minute) + ".png"),
+                / (str(self.game_id) + "_" + "{:02d}".format(int(minute)) + ".png"),
                 bbox_inches="tight",
             )
             logger.info("Image saved")
@@ -472,7 +472,7 @@ class FootballModel(Model):
                  Defaults to True.
         """
         if save_plots:
-            self.plot_grid(minute="", subtitle="KICKOFF", save_fig=True)
+            self.plot_grid(minute=0, subtitle="KICKOFF", save_fig=True)
 
         for i in range(self.game_length):
             self.step(minute=i + 1, plot_outcome=plot_outcome, save_plots=save_plots)
