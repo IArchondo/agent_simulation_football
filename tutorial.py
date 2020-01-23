@@ -3,7 +3,7 @@ import logging
 import numpy as np
 
 logger = logging.getLogger("Base")
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARN)
 
 from g3_model.FootballModel import FootballModel
 
