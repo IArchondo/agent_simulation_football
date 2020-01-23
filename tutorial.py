@@ -12,4 +12,5 @@ football.simulate_whole_game(True, save_plots=True)
 
 anima = AnimationGenerator(football.game_id)
 
-anima.execute_whole_process(1.2)
+anima.execute_whole_process(duration_input=1.1)
+

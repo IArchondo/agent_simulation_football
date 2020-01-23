@@ -1,6 +1,6 @@
 import imageio
 from pathlib import Path
-from os import listdir
+import os
 import logging
 
 logger = logging.getLogger("AnimationGenerator")
@@ -14,12 +14,14 @@ class AnimationGenerator:
         self.image_paths = []
         self.images = []
 
+        self.file_created = False
+
     def gather_image_paths(self):
         """Gather image paths in game id folder
         """
         self.image_paths = [
             self.saving_path / file
-            for file in listdir(self.saving_path)
+            for file in os.listdir(self.saving_path)
             if file[-4:] == ".png"
         ]
         self.image_paths.sort()
@@ -44,11 +46,26 @@ class AnimationGenerator:
                 self.images,
                 duration=duration_input,
             )
+            self.file_created = True
             logger.info("Done")
         else:
             logger.error("No image loaded")
 
-    def execute_whole_process(self, duration_input):
+    def clean_up_and_move(self):
+        """Delete all images and move gif to gif folder
+        """
+        if self.file_created:
+            for file in self.image_paths:
+                os.remove(file)
+            os.rename(
+                self.saving_path / (self.game_id + ".gif"),
+                Path("Images/game_gifs") / (self.game_id + ".gif"),
+            )
+            os.rmdir(self.saving_path)
+        else:
+            logger.error("File has not been created yet")
+
+    def execute_whole_process(self, duration_input, delete_after_creation=True):
         """Execute whole process until gif generation
         
         Args:
@@ -57,4 +74,7 @@ class AnimationGenerator:
         self.gather_image_paths()
         self.import_images()
         self.generate_gif(duration_input)
+
+        if delete_after_creation:
+            self.clean_up_and_move()
 
