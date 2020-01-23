@@ -73,7 +73,7 @@ class FootballModel(Model):
         self.schedule.agents[self.id_dict[chosen_player]].has_ball = True
         logger.info("Ball given to player " + str(chosen_player))
 
-        self.plot_grid()
+        self.plot_grid("Game kickoff")
 
     def __train_distance_model(self):
         """Calculates the maximum distance in the pitch and trains a linear model
@@ -241,7 +241,13 @@ class FootballModel(Model):
         else:
             logger.error("More than one player has the ball")
 
-    def plot_grid(self, title="Result"):
+    def plot_grid(self, subtitle="No subtitle specified"):
+        """Plot game grid
+        
+        Args:
+            subtitle (str, optional): Subtitle for plot. 
+                Defaults to "No subtitle specified".
+        """
         # gather ball position
         ball_coord = self.who_has_ball()["player"].pos
         ball_coord_x = ball_coord[0]
@@ -390,8 +396,8 @@ class FootballModel(Model):
         plt.scatter(goal_a_y, goal_a_x, c="orange", marker="d", s=250, zorder=4)
         plt.scatter(goal_b_y, goal_b_x, c="orange", marker="d", s=250, zorder=4)
 
-        if title == "Result":
-            title = (
+        title = (
+            (
                 "A - "
                 + str(self.result["A"])
                 + " : "
@@ -399,8 +405,13 @@ class FootballModel(Model):
                 + " - B"
                 + "\n"
             )
+            + "\n"
+            + subtitle
+        )
 
-        ax.set_title(title, fontweight="bold")
+        plt.title(title, fontweight="bold")
+        # plt.suptitle(subtitle)
+
         plt.show()
 
     def step(self, plot_outcome=True):
@@ -410,9 +421,9 @@ class FootballModel(Model):
             plot_outcome (bool, optional): Should outcome of play be plotted.
                  Defaults to True.
         """
-        self.who_has_ball()["player"].step()
+        plot_subtitle = self.who_has_ball()["player"].step()
         if plot_outcome:
-            self.plot_grid()
+            self.plot_grid(plot_subtitle)
 
     def simulate_whole_game(self, plot_outcome=True):
         """Simulate the length of the entire game
@@ -433,6 +444,6 @@ class FootballModel(Model):
             + " - B"
         )
 
-        self.plot_grid()
+        self.plot_grid("FINAL WHISTLE!")
         return self.final_result
 

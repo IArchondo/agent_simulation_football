@@ -281,11 +281,20 @@ class FootballPlayer(Agent):
         if outcome[0] == 0:
             logger.info("Ball lost")
             logger.info("Stolen by " + str(winning_player))
+            outcome_str = "stolen by " + str(winning_player)
         if outcome[0] == 1:
             logger.info("Successful pass")
             logger.info("Received by " + str(winning_player))
+            outcome_str = "pass successful"
 
         self.__give_ball_to_player(winning_player)
+
+        # create plotting text
+        intention_str = (
+            str(self.unique_id) + " intended pass to " + str(receiving_player_id)
+        )
+
+        return intention_str + ", " + outcome_str
 
     # actionabile methods
 
@@ -301,6 +310,9 @@ class FootballPlayer(Agent):
 
         self.model.grid.move_agent(self, new_position)
         logger.info("Player moved forward to cell " + str(new_position))
+        outcome_str = "Player " + str(self.unique_id) + " moved forward"
+
+        return outcome_str
 
     def shoot(self):
         """Player shoots and scores depending on his position on field,
@@ -328,12 +340,14 @@ class FootballPlayer(Agent):
         ]
 
         if scoring_outcome:
-            logger.info("GOAL SCORED!!")
+            outcome_str = "GOAL SCORED!!"
+            logger.info(outcome_str)
             self.goals_scored = self.goals_scored + 1
             self.model.update_result()
 
         else:
-            logger.info("Shot saved!")
+            outcome_str = "Shot saved!"
+            logger.info(outcome_str)
 
         # no matter the outcome, give ball to the furthest back opponent
         self.has_ball = False
@@ -352,6 +366,10 @@ class FootballPlayer(Agent):
 
         logger.info("Player " + str(kickoff_player) + " to take ball back into play")
 
+        intention_str = "Player " + str(self.unique_id) + " shoots!"
+
+        return intention_str + " " + outcome_str
+
     def look_to_pass_or_shoot_ball(self):
         """Evaluate passing candidates, choose one and intend a pass
         """
@@ -361,12 +379,16 @@ class FootballPlayer(Agent):
         best_passing_prob = passing_prob[passing_prob["decision"]]["decision_probs"]
 
         if scoring_prob > best_passing_prob:
-            self.shoot()
+            outcome_str = self.shoot()
         else:
             chosen_candidate = passing_prob["decision"]
             probabilities = passing_prob[chosen_candidate]["final_passing_probs"]
 
-            self.intent_pass_ball_to_player(chosen_candidate, probabilities)
+            outcome_str = self.intent_pass_ball_to_player(
+                chosen_candidate, probabilities
+            )
+
+        return outcome_str
 
     def step(self):
         # TODO move all stepping forward into stepping forward
@@ -375,8 +397,10 @@ class FootballPlayer(Agent):
         )
 
         if self.check_forward():
-            self.move_forward()
+            outcome_str = self.move_forward()
 
         else:
-            self.look_to_pass_or_shoot_ball()
+            outcome_str = self.look_to_pass_or_shoot_ball()
+
+        return outcome_str
 
