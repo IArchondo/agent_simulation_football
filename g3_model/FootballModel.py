@@ -70,7 +70,7 @@ class FootballModel(Model):
             # TODO this should be later be improved to create a formation of some sorts
             empty_place = self.grid.find_empty()
             self.grid.place_agent(player, empty_place)
-            logger.info("Agent " + str(self.ids[i]) + " placed in " + str(empty_place))
+            logger.debug("Agent " + str(self.ids[i]) + " placed in " + str(empty_place))
 
         # Give the ball to a player
         ball_options = self.determine_furthest_back_per_team()
@@ -184,6 +184,18 @@ class FootballModel(Model):
         }
 
         return output_dict
+
+    def return_player(self, player_id):
+        """Return player by specified player_id
+        
+        Args:
+            player_id (str): player unique id
+        
+        Returns:
+            g2_player.FootballPlayer.FootballPlayer: requested player
+        """
+
+        return self.schedule.agents[self.id_dict[player_id]]
 
     def update_result(self):
         """Count number of goals scored per team and update result

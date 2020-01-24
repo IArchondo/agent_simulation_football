@@ -58,6 +58,20 @@ class FootballPlayer(Agent):
         )
         return opposing_players
 
+    def __evaluate_surroundings(self):
+        return
+        ## back, forward, right, left free
+
+        ## number of opposing players in radio 1
+
+        ## number of opposing players in radio 2
+
+        ## opposing player in same carril
+
+        ## player in carril right
+
+        ## player in carril left
+
     def __give_ball_to_player(self, receiving_player_id):
         """give ball to a given player
         
@@ -187,11 +201,11 @@ class FootballPlayer(Agent):
 
         return output_dict
 
-    def check_forward(self):
-        """Check if an opposing player is in front of player
+    def check_next_cell(self, direction):
+        """Check four directions of cells to check if they are occupied
         
         Returns:
-            boolean: False if an opposing player is in front
+            boolean: False if a player is in front
         """
         if self.__is_on_border():
             logger.info("Player has reached the edge of the pitch")
@@ -199,10 +213,34 @@ class FootballPlayer(Agent):
         else:
             current_position_x = self.pos[0]
             current_position_y = self.pos[1]
-            forward_position = (
-                current_position_x,
-                current_position_y + self.movement_direction,
-            )
+
+            # TODO there has to be a more efficient way to code this
+            if direction == "forward":
+                forward_position = (
+                    current_position_x,
+                    current_position_y + self.movement_direction,
+                )
+            elif direction == "back":
+                forward_position = (
+                    current_position_x,
+                    current_position_y - self.movement_direction,
+                )
+
+            elif direction == "left":
+                forward_position = (
+                    current_position_x - self.movement_direction,
+                    current_position_y,
+                )
+
+            elif direction == "right":
+                forward_position = (
+                    current_position_x + self.movement_direction,
+                    current_position_y,
+                )
+
+            else:
+                logger.error("Direction has to be either forward,bach,left or right")
+                raise Exception("Direction has to be either forward,bach,left or right")
 
             logger.info("Checking grid in " + str(forward_position))
             forward_cell = self.model.grid.get_cell_list_contents(forward_position)
@@ -211,11 +249,11 @@ class FootballPlayer(Agent):
 
             if len(forward_cell) > 0:
                 if forward_cell[0].team != self.team:
-                    logger.info("Opposing player is in front")
+                    logger.info("Opposing player is in analyzed cell")
                     return False
 
                 else:
-                    logger.info("Teammate is in front")
+                    logger.info("Teammate is in analyzed cell")
                     return False
 
             else:
@@ -396,7 +434,7 @@ class FootballPlayer(Agent):
             "Agent " + str(self.unique_id) + " activated on cell: " + str(self.pos)
         )
 
-        if self.check_forward():
+        if self.check_next_cell(direction="forward"):
             outcome_str = self.move_forward()
 
         else:
