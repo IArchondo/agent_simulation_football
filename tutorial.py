@@ -11,8 +11,6 @@ football = FootballModel(10, 9, 13, 60)
 
 football.simulate_whole_game(True, save_plots=False)
 
-football.who_has_ball()["player"].evaluate_surroundings()
-
 anima = AnimationGenerator(football.game_id)
 
 anima.execute_whole_process(duration_input=1.1)
