@@ -484,19 +484,35 @@ class FootballPlayer(Agent):
 
     # actionabile methods
 
-    def move_forward(self):
+    def move_one_cell(self, direction="forward"):
         """Move forward one position
         """
+        direction_dict = {
+            "x": {
+                "forward": 0,
+                "back": 0,
+                "right": self.movement_direction,
+                "left": -self.movement_direction,
+            },
+            "y": {
+                "forward": self.movement_direction,
+                "back": -self.movement_direction,
+                "right": 0,
+                "left": 0,
+            },
+        }
+
         current_position_x = self.pos[0]
         current_position_y = self.pos[1]
+
         new_position = (
-            current_position_x,
-            current_position_y + self.movement_direction,
+            current_position_x + direction_dict["x"][direction],
+            current_position_y + direction_dict["y"][direction],
         )
 
         self.model.grid.move_agent(self, new_position)
-        logger.info("Player moved forward to cell " + str(new_position))
-        outcome_str = "Player " + str(self.unique_id) + " moved forward"
+        logger.info("Player moved" + str(direction) + "to cell " + str(new_position))
+        outcome_str = "Player " + str(self.unique_id) + " moved " + str(direction)
 
         return outcome_str
 
@@ -585,7 +601,7 @@ class FootballPlayer(Agent):
         )
 
         if self.check_next_cell(direction="forward"):
-            outcome_str = self.move_forward()
+            outcome_str = self.move_one_cell(direction="forward")
 
         else:
             outcome_str = self.look_to_pass_or_shoot_ball()
