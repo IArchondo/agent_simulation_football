@@ -25,13 +25,45 @@ class FootballPlayer(Agent):
         if self.team == "B":
             self.movement_direction = -1
 
-    def __is_on_border(self):
-        if ((self.team == "A") & (self.pos[1] + 1 == self.model.grid.height)) | (
-            (self.team == "B") & (self.pos[1] == 0)
-        ):
-            return True
-        else:
-            return False
+    def __is_on_border(self, direction):
+        """Check if player is on border for given direction
+        
+        Args:
+            direction (str): forward, back, right, left
+        
+        Returns:
+            bool: True if player is on the border in that particular direction
+        """
+        if direction == "forward":
+            if ((self.team == "A") & (self.pos[1] + 1 == self.model.grid.height)) | (
+                (self.team == "B") & (self.pos[1] == 0)
+            ):
+                return True
+            else:
+                return False
+        elif direction == "back":
+            if ((self.team == "A") & (self.pos[1] == 0)) | (
+                (self.team == "B") & (self.pos[1] + 1 == self.model.grid.height)
+            ):
+                return True
+            else:
+                return False
+
+        elif direction == "left":
+            if ((self.team == "A") & (self.pos[0] == 0)) | (
+                (self.team == "B") & (self.pos[0] + 1 == self.model.grid.width)
+            ):
+                return True
+            else:
+                return False
+
+        elif direction == "right":
+            if ((self.team == "A") & (self.pos[0] + 1 == self.model.grid.width)) | (
+                (self.team == "B") & (self.pos[0] == 0)
+            ):
+                return True
+            else:
+                return False
 
     def __count_surrounding_opposing_players(self, player):
         """Count the opposing player's in a player's vicinity
@@ -58,9 +90,12 @@ class FootballPlayer(Agent):
         )
         return opposing_players
 
-    def __evaluate_surroundings(self):
-        return
+    def evaluate_surroundings(self):
         ## back, forward, right, left free
+        surroundings = {
+            direction: self.check_next_cell(direction)
+            for direction in ["back", "forward", "right", "left"]
+        }
 
         ## number of opposing players in radio 1
 
@@ -71,6 +106,8 @@ class FootballPlayer(Agent):
         ## player in carril right
 
         ## player in carril left
+
+        return surroundings
 
     def __give_ball_to_player(self, receiving_player_id):
         """give ball to a given player
@@ -207,8 +244,8 @@ class FootballPlayer(Agent):
         Returns:
             boolean: False if a player is in front
         """
-        if self.__is_on_border():
-            logger.info("Player has reached the edge of the pitch")
+        if self.__is_on_border(direction=direction):
+            logger.info("Player has reached the edge of the pitch in that direction")
             return False
         else:
             current_position_x = self.pos[0]
@@ -429,7 +466,9 @@ class FootballPlayer(Agent):
         return outcome_str
 
     def step(self):
-        # TODO move all stepping forward into stepping forward
+
+        surroundings = self.evaluate_surroundings()
+
         logger.info(
             "Agent " + str(self.unique_id) + " activated on cell: " + str(self.pos)
         )
