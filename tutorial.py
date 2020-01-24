@@ -9,7 +9,9 @@ from g4_animations.AnimationGenerator import AnimationGenerator
 football = FootballModel(10, 9, 13, 60)
 # 9 13
 
-football.simulate_whole_game(True, save_plots=True)
+football.simulate_whole_game(True, save_plots=False)
+
+football.who_has_ball()["player"].evaluate_surroundings()
 
 anima = AnimationGenerator(football.game_id)
 

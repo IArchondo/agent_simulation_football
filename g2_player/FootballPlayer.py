@@ -104,7 +104,7 @@ class FootballPlayer(Agent):
             "no_of_opponent_players": no_of_opponent_players,
         }
 
-    def check_closest_player_forward(self, input_player, lane="forward"):
+    def __check_closest_player_forward(self, input_player, lane="forward"):
         """Check closest player in a straight line
         
         Args:
@@ -171,6 +171,12 @@ class FootballPlayer(Agent):
             return []
 
     def evaluate_surroundings(self):
+        """Evaluate surroundings to take decision
+        
+        Returns:
+            dict: Dictionary with required metrics to take decision
+            #TODO explain this thoroughly
+        """
         ## back, forward, right, left free
         surroundings = {
             direction: self.check_next_cell(direction)
@@ -196,10 +202,19 @@ class FootballPlayer(Agent):
         ]
 
         ## opposing player in same carril
+        surroundings["player_forward"] = self.__check_closest_player_forward(
+            self, lane="forward"
+        )
 
         ## player in carril right
+        surroundings["player_right"] = self.__check_closest_player_forward(
+            self, lane="right"
+        )
 
         ## player in carril left
+        surroundings["player_left"] = self.__check_closest_player_forward(
+            self, lane="left"
+        )
 
         return surroundings
 
