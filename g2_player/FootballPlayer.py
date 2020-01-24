@@ -65,30 +65,110 @@ class FootballPlayer(Agent):
             else:
                 return False
 
-    def __count_surrounding_opposing_players(self, player):
+    def __count_surrounding_opponent_players(self, player, radius=1):
         """Count the opposing player's in a player's vicinity
         
         Args:
             player (g2_player.FootballPlayer.FootballPlayer): input player
+            radius (int, optional): Radio to look for. Defaults to 1.
         
         Returns:
             int: Number of opposing players in vicinity (min 0 - max 8)
         """
 
+        # if radius 2, dont use moore since that marking space is not reachable
+        #  with one move
+
         neighbors = self.model.grid.get_neighbors(
-            pos=player.pos, moore=True, include_center=False, radius=1
+            pos=player.pos, moore=True, include_center=False, radius=radius
         )
 
-        opposing_players = sum([neighbor.team != player.team for neighbor in neighbors])
+        opponent_players = [
+            opponent for opponent in neighbors if opponent.team != player.team
+        ]
 
-        logger.debug(
+        no_of_opponent_players = len(opponent_players)
+
+        logger.info(
             "Player "
             + str(player.unique_id)
             + " has "
-            + str(opposing_players)
-            + " opposing players in his surroundings"
+            + str(no_of_opponent_players)
+            + " opposing players in his surroundings with radius "
+            + str(radius)
         )
-        return opposing_players
+        logger.info("Players: " + str(opponent_players))
+
+        return {
+            "opponent_players": opponent_players,
+            "no_of_opponent_players": no_of_opponent_players,
+        }
+
+    def check_closest_player_forward(self, input_player, lane="forward"):
+        """Check closest player in a straight line
+        
+        Args:
+            input_player (g2_player.FootballPlayer.FootballPlayer): player
+                from whose point of view the process will be calculated
+            lane (str, optional): forward, right or left lane.
+                    Defaults to "forward".
+        
+        Returns:
+            g2_player.FootballPlayer.FootballPlayer: Closest player
+        """
+
+        lane_dict = {"forward": 0, "right": 1, "left": -1}
+        movement_dict = {
+            "forward": input_player.movement_direction,
+            "right": 0,
+            "left": 0,
+        }
+
+        if input_player.team == "A":
+            forward_cells = [
+                (input_player.pos[0] + lane_dict[lane], f_cell)
+                for f_cell in range(
+                    input_player.pos[1] + movement_dict[lane],
+                    input_player.model.grid.height,
+                )
+            ]
+
+        elif input_player.team == "B":
+            forward_cells = list(
+                reversed(
+                    [
+                        (input_player.pos[0] - lane_dict[lane], f_cell)
+                        for f_cell in range(
+                            0, input_player.pos[1] + movement_dict[lane]
+                        )
+                    ]
+                )
+            )
+
+        players_forward = [
+            item
+            for sublist in [
+                input_player.model.grid.get_cell_list_contents(cell)
+                for cell in forward_cells
+            ]
+            for item in sublist
+        ]
+
+        if len(players_forward) > 0:
+            heights = [player.pos[1] for player in players_forward]
+
+            if input_player.team == "A":
+                closest_height = min(heights)
+            elif input_player.team == "B":
+                closest_height = max(heights)
+
+            closest_player = [
+                player for player in players_forward if player.pos[1] == closest_height
+            ]
+
+            return closest_player
+        else:
+            return []
 
     def evaluate_surroundings(self):
         ## back, forward, right, left free
@@ -97,9 +177,23 @@ class FootballPlayer(Agent):
             for direction in ["back", "forward", "right", "left"]
         }
 
-        ## number of opposing players in radio 1
+        opponents_nearby = self.__count_surrounding_opponent_players(
+            player=self, radius=2
+        )["opponent_players"]
 
-        ## number of opposing players in radio 2
+        # opponents in player's own radius
+        surroundings["opponents_in_marking_zone"] = [
+            opponent
+            for opponent in opponents_nearby
+            if calculate_distance_two_points(self.pos, opponent.pos) < 1.5
+        ]
+
+        # opponents in player's own radius, except corners
+        surroundings["opponents_reachable_with_one_move"] = [
+            opponent
+            for opponent in opponents_nearby
+            if 2.6 > calculate_distance_two_points(self.pos, opponent.pos) > 1.5
+        ]
 
         ## opposing player in same carril
 
@@ -176,11 +270,13 @@ class FootballPlayer(Agent):
             for player in teammates
         }
 
-        # TODO 0.25 should be possible to alter via a yaml file
+        # TODO maybe scrap no and substitute with a length
         interception_probabilities = {
             player: cap_value(
                 self.model.parameters["pressure_effect"]
-                * self.__count_surrounding_opposing_players(player),
+                * self.__count_surrounding_opponent_players(player)[
+                    "no_of_opponent_players"
+                ],
                 1,
             )
             for player in teammates
